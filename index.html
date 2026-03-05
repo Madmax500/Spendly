@@ -371,11 +371,15 @@ const TABS = [
   {id:"insight", label:"Insight", icon:"∿"},
 ];
 
+const STORE_KEY = 'spendly_data_v1';
+const loadData = () => { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch { return {}; } };
+const saveData = (d) => { try { localStorage.setItem(STORE_KEY, JSON.stringify(d)); } catch {} };
+
 function Spendly() {
   const [tab,             setTab]             = useState("home");
-  const [txList,          setTxList]          = useState(SEED);
-  const [cats,            setCats]            = useState(INIT_CATS);
-  const [budgets,         setBudgets]         = useState(Object.fromEntries(INIT_CATS.map(c=>[c.name,c.budget])));
+  const [txList,          setTxList]          = useState(() => { const d=loadData(); return d.txList||SEED; });
+  const [cats,            setCats]            = useState(() => { const d=loadData(); return d.cats||INIT_CATS; });
+  const [budgets,         setBudgets]         = useState(() => { const d=loadData(); return d.budgets||Object.fromEntries(INIT_CATS.map(c=>[c.name,c.budget])); });
   const [modal,           setModal]           = useState(false);
   const [editTx,          setEditTx]          = useState(null);
   const [editBudget,      setEditBudget]      = useState(null);
@@ -389,15 +393,24 @@ function Spendly() {
   const [newCat,          setNewCat]          = useState({name:"",budget:"",icon:"💳",color:"#4ade80"});
   const [confirmDel,      setConfirmDel]      = useState(null);
   const [currentMonth,    setCurrentMonth]    = useState(() => {
+    const d=loadData();
+    if(d.currentMonth) return d.currentMonth;
     const now = new Date();
     const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     return MONTHS[now.getMonth()] + " " + now.getFullYear();
   });
-  const [monthStartId,    setMonthStartId]    = useState(0);
-  const [openingBalance,  setOpeningBalance]  = useState(0);
+  const [monthStartId,    setMonthStartId]    = useState(() => { const d=loadData(); return d.monthStartId||0; });
+  const [openingBalance,  setOpeningBalance]  = useState(() => { const d=loadData(); return d.openingBalance||0; });
 
-  const [archivedMonths,  setArchivedMonths]  = useState([]);
+  const [archivedMonths,  setArchivedMonths]  = useState(() => { const d=loadData(); return d.archivedMonths||[]; });
+  
   const [confirmNewMonth, setConfirmNewMonth] = useState(false);
+
+  // ── Persist to localStorage ──
+  const { useEffect } = React;
+  useEffect(() => {
+    saveData({ txList, cats, budgets, archivedMonths, openingBalance, currentMonth, monthStartId });
+  }, [txList, cats, budgets, archivedMonths, openingBalance, currentMonth, monthStartId]);
   const [newMonthStartDate,  setNewMonthStartDate]  = useState(new Date().toISOString().slice(0,10));
   const [currentPeriodStart, setCurrentPeriodStart] = useState(() => {
     // Use earliest transaction date as period start
